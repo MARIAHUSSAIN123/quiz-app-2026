@@ -6,6 +6,8 @@
 <title>Final Quiz Competition — Modern Web Development (JavaScript)</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&family=Fira+Code:wght@400;500&display=swap" rel="stylesheet">
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
 <style>
   :root{
     --blue:#1E6FB8;
@@ -557,6 +559,51 @@
    FINAL QUIZ COMPETITION — Modern Web Development (JavaScript)
    Organized by SMIT — Saylani Mass IT Training
    ============================================================ */
+
+/* ---------------- Firebase Setup ---------------- */
+const firebaseConfig = {
+  apiKey: "AIzaSyDHVKc1zg9MwxDHPW5gus1jplUhbShO-5k",
+  authDomain: "social-media-ea31f.firebaseapp.com",
+  projectId: "social-media-ea31f",
+  storageBucket: "social-media-ea31f.firebasestorage.app",
+  messagingSenderId: "312597804138",
+  appId: "1:312597804138:web:7afa887254dd8311c34613",
+  measurementId: "G-7GB5571F1B"
+};
+firebase.initializeApp(firebaseConfig);
+const db = firebase.firestore();
+const STORAGE_COLLECTION = 'quiz_app_storage';
+
+/* Compatibility shim: mimics the get/set/list storage API used throughout
+   this app, backed by Firestore so data is shared across every device
+   (students on their own phones/laptops, trainer on theirs). */
+window.storage = {
+  async get(key){
+    const snap = await db.collection(STORAGE_COLLECTION).doc(key).get();
+    if(!snap.exists) throw new Error('Key not found: ' + key);
+    return { key, value: snap.data().value };
+  },
+  async set(key, value){
+    await db.collection(STORAGE_COLLECTION).doc(key).set({ value, updatedAt: Date.now() });
+    return { key, value };
+  },
+  async delete(key){
+    await db.collection(STORAGE_COLLECTION).doc(key).delete();
+    return { key, deleted:true };
+  },
+  async list(prefix){
+    prefix = prefix || '';
+    let q = db.collection(STORAGE_COLLECTION);
+    if(prefix){
+      q = q.where(firebase.firestore.FieldPath.documentId(), '>=', prefix)
+           .where(firebase.firestore.FieldPath.documentId(), '<', prefix + '\uf8ff');
+    }
+    const snap = await q.get();
+    const keys = [];
+    snap.forEach(doc => keys.push(doc.id));
+    return { keys, prefix };
+  }
+};
 
 const TRAINER_USERNAME = "trainer";
 const TRAINER_PASSWORD = "smit2026";
